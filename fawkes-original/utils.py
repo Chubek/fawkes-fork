@@ -22,7 +22,7 @@ import PIL
 import pkg_resources
 import six
 from keras.utils import Progbar
-from six.moves.urllib.error import HTTPError, URLError
+from urllib.error import HTTPError, URLError
 
 stderr = sys.stderr
 sys.stderr = open(os.devnull, 'w')
@@ -32,13 +32,12 @@ sys.stderr = stderr
 import keras.backend as K
 import numpy as np
 import tensorflow as tf
-from PIL import Image, ExifTags
-from keras.layers import Dense, Activation
+from .align_face import align
+from keras.layers import Activation, Dense
 from keras.models import Model
 from keras.preprocessing import image
-
-from fawkes.align_face import align
-from six.moves.urllib.request import urlopen
+from PIL import ExifTags, Image
+from urllib.request import urlopen
 
 if sys.version_info[0] == 2:
     def urlretrieve(url, filename, reporthook=None, data=None):
@@ -63,7 +62,7 @@ if sys.version_info[0] == 2:
             for chunk in chunk_read(response, reporthook=reporthook):
                 fd.write(chunk)
 else:
-    from six.moves.urllib.request import urlretrieve
+    from urllib.request import urlretrieve
 
 
 def clip_img(X, preprocessing='raw'):

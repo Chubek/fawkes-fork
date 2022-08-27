@@ -1,0 +1,11 @@
+mtcnn
+numpy
+tensorflow
+keras
+pillow
+six
+jax
+opencv-python
+pydantic
+dm-pix
+deepface
