@@ -2,10 +2,13 @@ from __future__ import annotations
 
 from enum import Enum
 from os import stat
-from typing import List, Tuple
+from typing import Any, List, Tuple, Dict
 import jax.numpy as jnp
 import jax
 from deepface.DeepFace import detectFace
+from pydantic import BaseModel
+
+
 
 
 class FacialDetector(Enum):
@@ -55,16 +58,20 @@ class FacialDetector(Enum):
         img_path: str,
         model: FacialDetector,
         target_size: Tuple[int, int]
-    ) -> jnp.array:
+    ) -> DetectedFace:
         detector_backend = FacialDetector.to_string(model)
 
-        detected_face = detectFace(
+        detected_faces = detectFace(
             img_path=img_path,
             detector_backend=detector_backend,
             target_size=target_size
         )
 
-        return jnp.asarray(detected_face)
+        return DetectedFace(
+            img_path=img_path,
+            detected_faces=detected_faces,
+            detection_method=model
+        )
 
 
     @staticmethod
@@ -73,6 +80,20 @@ class FacialDetector(Enum):
         batch: List[str],
         model: FacialDetector,
         target_size: Tuple[int, int]
-    ) -> jnp.array:
-        return jax.vmap(FacialDetector.detect_face)(batch, model, target_size)
+    ) -> List[DetectedFace]:
+        lst = []
 
+        def detect_face(img_path, model=model, target_size=target_size):
+            res = FacialDetector.detect_face(img_path, model, target_size)
+
+            lst.append(res)
+
+        return jax.vmap(detect_face)(batch)
+
+
+
+
+class DetectedFace(BaseModel):
+    img_path: str
+    detected_faces: Dict[Any]
+    detection_method: FacialDetector
