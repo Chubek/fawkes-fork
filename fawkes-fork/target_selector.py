@@ -1,129 +1,141 @@
 from __future__ import annotations
 from dis import dis
+from typing import List, Optional, Tuple
 
-from scipy.spatial.distance import cdist
-from enum import Enum
-from time import time
+from scipy.spatial import KDTree
+from scipy.spatial.distance import euclidean
+
 import jax
 import jax.numpy as jnp
 
 from pydantic import BaseModel
 
-class DistanceType(Enum):
-    Euclidean = "euclidean"
-    CityBlock = "cityblock"
-    Cosine = "cosine"
-    Jaccard = "jaccard"
 
-
-    @staticmethod
-    def from_str(s: str) -> DistanceType:
-        s = s.lower()
-
-        if s == "euclidean" or s == "l2":
-            return DistanceType.Euclidean
-        elif s == "cityblock" or s == "manhattan":
-            return DistanceType.CityBlock
-        elif s == "cosine":
-            return DistanceType.Cosine
-        elif s == "jaccard":
-            return DistanceType.Jaccard
-
-    @staticmethod
-    def to_str(dtype: DistanceType) -> str:
-        if dtype == DistanceType.Euclidean:
-            return "euclidean"
-        elif dtype == DistanceType.CityBlock:
-            return "cityblock"
-        elif dtype == DistanceType.Cosine:
-            return "cosine"
-        elif dtype == DistanceType.Jaccard:
-            return "jaccard"
-    
-
-    @staticmethod
-    @jax.jit
-    def calculate_distancne(
-        array_a: jnp.array,
-        array_b: jnp.array,
-        distance_type: DistanceType
-    ) -> jnp.array:
-        dist_type = DistanceType.to_str(distance_type)
-
-        func_dist = lambda a, b: cdist(a, b, dist_type)
-
-        return jax.vmap(func_dist)(array_a, array_b)
-
-
-class GammaRand:
-    @staticmethod
-    def generate_random_gamma(c: int, len_df: int):
-        key = jax.random.PRNGKey(time())
-
-        a = jax.random.uniform(1e-5, 1.0, [c, len_df])
-
-        return jax.random.gamma(key, a, [c, len_df])
-
-
-class FuzzyCMeans(BaseModel):
-    df: jnp.array = jnp.asarray([])
-    len_df: int = 100
-    c: int = 3
-    m: float = 3.0
-    distance_type: DistanceType = DistanceType.Euclidean
-    tolerance: float = jax.random.uniform(jax.random.PRNGKey(time()))
-    gamma: jnp.array = jnp.asarray([]) 
-    gamma_prev: jnp.array = jnp.asarray([]) 
-    centroids: jnp.array = jnp.asarray([])
+class TargetSelector(BaseModel):
+    k: int = 3
+    radius: float = 1.5
+    selected_targets: List[jnp.array] = []
+    image_array_list: jnp.array = jnp.asarray([])
+    kd_tree: Optional[KDTree] = None
+    k_neighbors: jnp.array = jnp.asarray([])
+    k_distances: jnp.array = jnp.asarray([])
+    local_reachable_density: jnp.asarray = jnp.array([])
+    local_outlier_factor: jnp.asarray = jnp.array([])
 
 
     @classmethod
-    def init_new(
-        cls,
-        data_frame: jnp.array,
-        c: int,
-        m: float,
-        distance_type: DistanceType
-    ) -> FuzzyCMeans:
+    def init_and_compute(cls, image_array_list: jnp.array, k: int, radius: float) -> List[jnp.array]:
         obj = cls()
 
-        obj.df = data_frame
-        obj.len_df = data_frame.shape[0]
-        obj.c = c
-        obj.m = m
-        obj.distance_type = distance_type
-        obj.gamma = GammaRand.generate_random_gamma(c, data_frame.shape[0])
-        obj.gamma_prev = GammaRand.generate_random_gamma(c, data_frame.shape[0])
+        obj.k = k
+        obj.radius = radius
+        obj.image_array_list = image_array_list
 
-        obj.initialize_calc_centroids()
+        selected_targets = obj.compute()
 
-        return obj
+        return obj.compute()
 
-    def initialize_calc_centroids(self):    
-        gamma_ = self.gamma * self.m
-        cents = []
+    def create_kdtree(self):
+        self.kd_tree = KDTree(self.image_array_list)
 
-        def cent_calc(gamma_arg: jnp.array, df=self.df, gamma_=gamma_):
-            sums = []
-            calc = lambda x: sums.append(jnp.dot(gamma_arg, x))
+    @jax.jit
+    def compute(self) -> List[jnp.array]:
+        self.calculate_knn()
+        self.calculate_k_distance()
+        self.calculate_lrd()
+        self.calculate_fob()
+        
+        self.sort_and_get_top()
 
-            jax.vmap(calc)(df)
+        return self.selected_targets
+          
 
-            sum_of_sum = jnp.sum(jnp.asarray(sums), axis=-1)
-            sum_div = sum_of_sum / jnp.sum(gamma_)
+    @jax.jit
+    def calculate_knn(self):
+        knn = []
 
-            cents.append(sum_div)
+        def get_knn(a: jnp.array, k=self.k):
+            knn_query = self.kd_tree.query(a, k)
+
+            knn.append((knn, knn_query))
+
+        jax.vmap(get_knn)(self.image_array_list)
+
+        self.k_neighbors = jnp.asarray(knn)
 
 
-        jax.vmap(cent_calc)(gamma_)
+    @jax.jit
+    def calculate_k_distance(self):
+        k_dist = []
 
-        self.centroids = jnp.asarray(cents)
+        def calc_k_dist(a: jnp.array):
+            p = a[0]
+            knn = a[1]
 
-    
-    def check_convergence(self) -> bool:
-        return jnp.sum((self.gamma - self.gamma_prev) ** 2) <= 2
+            dist_list = []
 
-    def get_distance(self, a: jnp.array, b: jnp.array) -> jnp.array:
-        distance_type = self.distance_type.to_str()
+            def dist(a: jnp.array, b: jnp.array):
+                distance = euclidean(a, b)
 
-        return cdist(a, b, metric=distance_type)
+                dist_list.append((a, b, distance))
+
+            jax.vmap(dist)(p, knn)
+
+            k_dist.append(jnp.asarray(dist))
+
+        
+        jax.vmap(calc_k_dist)(self.k_neighbors)
+
+
+        self.k_distances = jnp.asarray(k_dist)
+
+
+    @jax.jit
+    def calculate_lrd(self):
+        lrds = []        
+
+        def get_lrd(k_dist_pairs: jnp.array):
+            rds = []
+            
+            def get_rd(k_dist_pair: jnp.array, k=self.k) -> jnp.array:
+                _, _, distance = k_dist_pair
+                
+                rds.append(jnp.max(k - distance, distance))
+
+
+            jax.vmap(get_rd)(k_dist_pairs)
+
+            a, _, _ = k_dist_pairs
+            
+            avg_rds_inversed = 1.0 / (jnp.mean(rds))
+            lrds.append((a, avg_rds_inversed))
+
+                   
+
+        jax.vmap(get_lrd)(self.k_distances)
+
+        self.local_reachable_density = jnp.asarray(lrds)
+
+
+    @jax.dist
+    def calculate_fob(self):
+        fobs = []
+        mean_lrds = jnp.mean([lrd[1] for lrd in self.local_reachable_density])
+        
+        def calc_fob(lrd_arg, mean_lrds=mean_lrds):
+            a, lrd = lrd_arg
+
+            fobs.append((a, mean_lrds * (1.0 / lrd)))
+
+
+        jax.vmap(calc_fob)(self.local_reachable_density)
+
+        self.local_outlier_factor = jnp.array(fobs)
+         
+
+
+    @jax.jit
+    def sort_and_get_top(self):
+        sort = sorted(self.local_outlier_factor, key=lambda x:x[1])
+
+        self.selected_targets = [a for a in sorted[:len(sorted) // 4]]
