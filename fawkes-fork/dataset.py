@@ -163,12 +163,13 @@ class SingleImage(BaseModel):
     @jax.jit
     def run_arctan_from_array(
         ls: List[SingleImage],
-        tanh_costant: float
+        tanh_constant: float
     ) -> List[SingleImage]:
         single_imgs_loaded = SingleImage.run_batch_load_source(ls)
         ls_arrays = [si.img_array for si in single_imgs_loaded]
 
-        loaded_arctans = ImageHandler.tanh_image_batch(ls_arrays, tanh_costant)
+        loaded_arctans = ImageHandler.tanh_image_batch(
+            ls_arrays, tanh_constant)
 
         fin = []
 
@@ -183,13 +184,13 @@ class SingleImage(BaseModel):
     @jax.jit
     def run_revarctan_from_array(
         ls: List[SingleImage],
-        tanh_costant: float
+        tanh_constant: float
     ) -> List[SingleImage]:
         single_imgs_loaded = SingleImage.run_batch_load_source(ls)
         ls_arrays = [si.img_array for si in single_imgs_loaded]
 
         loaded_arctans = ImageHandler.reverse_tanh_image_batch(
-            ls_arrays, tanh_costant)
+            ls_arrays, tanh_constant)
 
         fin = []
 
@@ -205,13 +206,13 @@ class SingleImage(BaseModel):
     def run_clipped_from_array(
         ls: List[SingleImage],
         max_val: float,
-        tanh_costant: float
+        tanh_constant: float
     ) -> List[SingleImage]:
         single_imgs_loaded = SingleImage.run_batch_load_source(ls)
         ls_arrays = [si.img_array for si in single_imgs_loaded]
 
         loaded_arctans = ImageHandler.clip_img_batch(
-            ls_arrays, max_val, tanh_costant)
+            ls_arrays, max_val, tanh_constant)
 
         fin = []
 
@@ -224,8 +225,8 @@ class SingleImage(BaseModel):
 
     @staticmethod
     @jax.jit
-    def detect_face_array(
-        ls: List[SingleImage], max_val: float,
+    def run_batch_detect(
+        ls: List[SingleImage],
         detection_method: FacialDetector,
         target_size: Tuple[int, int]
     ) -> List[SingleImage]:
@@ -248,8 +249,8 @@ class SingleImage(BaseModel):
 
     @staticmethod
     @jax.jit
-    def extract_feature_array(
-        ls: List[SingleImage], max_val: float,
+    def run_extract_features(
+        ls: List[SingleImage],
         extraction_method: FeatureExtractor,
         detection_method: FacialDetector
     ) -> List[SingleImage]:
@@ -272,8 +273,8 @@ class SingleImage(BaseModel):
 
     @staticmethod
     @jax.jit
-    def extract_wo_face_array(
-        ls: List[SingleImage], max_val: float,
+    def run_remove_face(
+        ls: List[SingleImage],
         extraction_method: FeatureExtractor,
         detection_method: FacialDetector
     ) -> List[SingleImage]:
@@ -292,6 +293,12 @@ class SingleImage(BaseModel):
 
         return fin
 
+    @staticmethod
+    def run_apply_pixel_to_faces(
+        ls:  List[SingleImage]
+    ):
+        pass
+
     def delete_image_on_server(self):
         os.remove(self.img_path)
 
@@ -299,84 +306,138 @@ class SingleImage(BaseModel):
 class ImageDataSet:
     def __init__(self) -> None:
         self.list = []
+        self.type = ImageType.Init
 
     @classmethod
-    def source_from_list(cls, img_paths: List[str]) -> ImageDataSet:
+    def source_from_list(
+        cls,
+        img_paths: List[str],
+        resize: Tuple[int, int]
+    ) -> ImageDataSet:
         list = [SingleImage.new_source(i) for i in img_paths]
+        list = SingleImage.run_batch_load(list, resize)
 
         obj = cls()
 
         obj.list = list
+        obj.type = ImageType.Source
 
         return obj
 
     @classmethod
-    def target_from_list(cls, img_paths: List[str]) -> ImageDataSet:
+    def target_from_list(
+        cls,
+        img_paths: List[str],
+        resize: Tuple[int, int]
+    ) -> ImageDataSet:
         list = [SingleImage.new_target(i) for i in img_paths]
+        list = SingleImage.run_batch_load(list, resize)
 
         obj = cls()
 
         obj.list = list
+        obj.type = ImageType.Target
 
         return obj
 
     @classmethod
     def modded_from_arrays(cls, img_data: List[jnp.array]) -> ImageDataSet:
         list = [SingleImage.new_modded(a) for a in img_data]
+        list = SingleImage.run_apply_pixel_to_faces(list)
 
         obj = cls()
 
         obj.list = list
+        obj.type = ImageType.Modded
 
         return obj
 
     @classmethod
-    def cropped_from_arrays(cls, img_data: List[jnp.array]) -> ImageDataSet:
+    def cropped_from_arrays(
+        cls,
+        img_data: List[jnp.array],
+        detection_method: FacialDetector,
+        target_size: Tuple[int, int]
+    ) -> ImageDataSet:
         list = [SingleImage.new_cropped(cr) for cr in img_data]
+        list = SingleImage.run_batch_detect(
+            list, detection_method, target_size)
 
         obj = cls()
 
         obj.list = list
+        obj.type = ImageType.Cropped
 
         return obj
 
     @classmethod
-    def arctanned_from_arrays(cls, img_data: List[jnp.array]) -> ImageDataSet:
+    def arctanned_from_arrays(
+        cls,
+        img_data: List[jnp.array],
+        tanh_constant: float
+    ) -> ImageDataSet:
         list = [SingleImage.new_arctanned(cr) for cr in img_data]
+        list = SingleImage.run_arctan_from_array(list, tanh_constant)
 
         obj = cls()
 
         obj.list = list
+        obj.type = ImageType.Arctanned
 
         return obj
 
     @classmethod
-    def clipped_from_arrays(cls, img_data: List[jnp.array]) -> ImageDataSet:
+    def clipped_from_arrays(
+        cls,
+        img_data: List[jnp.array],
+        max_val: float,
+        tanh_constant: float
+    ) -> ImageDataSet:
         list = [SingleImage.new_clipped(cr) for cr in img_data]
+        list = SingleImage.run_clipped_from_array(
+            list,
+            max_val,
+            tanh_constant
+        )
 
         obj = cls()
 
         obj.list = list
+        obj.type = ImageType.Clipped
 
         return obj
 
     @classmethod
-    def rev_arctanned_from_arrays(cls, img_data: List[jnp.array]) -> ImageDataSet:
+    def rev_arctanned_from_arrays(
+        cls,
+        img_data: List[jnp.array],
+        tanh_constant: float
+    ) -> ImageDataSet:
         list = [SingleImage.new_rev_arctanned(cr) for cr in img_data]
+        list = SingleImage.run_revarctan_from_array(list, tanh_constant)
 
         obj = cls()
 
         obj.list = list
+        obj.type = ImageType.RevArctanned
 
         return obj
 
     @classmethod
-    def wo_face_from_arrays(cls, img_data: List[jnp.array]) -> ImageDataSet:
+    def wo_face_from_arrays(
+        cls,
+        img_data: List[jnp.array],
+        extraction_method: FeatureExtractor,
+        detection_method: FacialDetector
+    ) -> ImageDataSet:
         list = [SingleImage.new_wo_face(cr) for cr in img_data]
+        list = SingleImage.run_remove_face(
+            list, extraction_method, detection_method)
 
         obj = cls()
 
         obj.list = list
+        obj.type = ImageType.WithoutFace
 
         return obj
 
