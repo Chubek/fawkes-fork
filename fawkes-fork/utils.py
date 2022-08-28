@@ -1,5 +1,5 @@
-from string import ascii_letters
 from random import randint
+from string import ascii_letters
 
 
 class Utils:
@@ -12,4 +12,3 @@ class Utils:
             for _ in
             range(letters)
         ])
- 

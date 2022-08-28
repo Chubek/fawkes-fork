@@ -6,10 +6,11 @@ from typing import List
 import deepface
 import jax
 import jax.numpy as jnp
+from deepface.DeepFace import represent
 
 from .facial_detection import FacialDetector
 from .image_handling import ImageHandler
-from deepface.DeepFace import represent
+
 
 class FeatureExtractor(str, Enum):
     VGGFace = "vggface"
@@ -31,7 +32,7 @@ class FeatureExtractor(str, Enum):
         elif s == "facenet":
             return FeatureExtractor.Facenet
         elif s == "openface":
-            return FeatureExtractor.OpenFace        
+            return FeatureExtractor.OpenFace
         elif s == "arcface":
             return FeatureExtractor.ArcFace
         elif s == "dlib":
@@ -46,8 +47,6 @@ class FeatureExtractor(str, Enum):
             return FeatureExtractor.Facenet512
         else:
             raise ValueError("Unsupported extractor backend")
-
-    
 
     @staticmethod
     def to_string(feature_ext: FeatureExtractor) -> str:
@@ -73,10 +72,10 @@ class FeatureExtractor(str, Enum):
     @staticmethod
     @jax.jit
     def extract_feature_repr(
-            img_path: str, 
-            model: FeatureExtractor,
-            detector: FacialDetector         
-        ) -> jnp.array:
+        img_path: str,
+        model: FeatureExtractor,
+        detector: FacialDetector
+    ) -> jnp.array:
 
         model_name = FeatureExtractor.to_string(model)
         detector_backend = FacialDetector.to_string(detector)
@@ -88,7 +87,6 @@ class FeatureExtractor(str, Enum):
         )
 
         return jnp.array(feature_space)
-
 
     @staticmethod
     @jax.jit

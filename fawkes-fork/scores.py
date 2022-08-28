@@ -1,7 +1,8 @@
 from typing import Tuple
+
+import jax
 import jax.numpy as jnp
 import jax.scipy
-import jax
 from dm_pix import ssim
 
 
