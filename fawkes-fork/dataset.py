@@ -17,6 +17,8 @@ from .feature_extraction import FeatureExtractor
 from .image_handling import ImageHandler
 from .utils import Utils
 
+from copy import deepcopy
+
 
 class ImageType(Enum):
     Init = "init"
@@ -307,6 +309,7 @@ class ImageDataSet:
     def __init__(self) -> None:
         self.list = []
         self.type = ImageType.Init
+        self.cur_index = 0
 
     @classmethod
     def source_from_list(
@@ -446,3 +449,25 @@ class ImageDataSet:
 
     def __setitem__(self, idx: int, data: SingleImage):
         self.list[idx] = data
+
+    def __add__(self, other: ImageDataSet) -> ImageDataSet:
+        ls = deepcopy(self.list)
+        ls_other = deepcopy(other.list)
+
+        sum_ls = ls.extend(ls_other)
+
+        obj = deepcopy(self)
+
+        obj.list = sum_ls
+
+        return obj
+
+    def __iter__(self) -> ImageDataSet:
+        self.cur_index = 0
+        return self
+
+    def __next__(self) -> SingleImage:
+        if self.cur_index <= len(self.list):
+            return self.list[self.cur_index]
+        else:
+            raise StopIteration
