@@ -5,6 +5,7 @@ keras
 pillow
 six
 jax
+optax
 opencv-python
 pydantic
 dm-pix
