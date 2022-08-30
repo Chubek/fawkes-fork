@@ -59,12 +59,12 @@ class SingleImage(BaseModel):
         )
 
     @classmethod
-    def new_modded(cls, img_data: jnp.array, tmp_folder: str) -> SingleImage:
+    def new_modded(cls, shape: List[int], tmp_folder="tmp") -> SingleImage:
         rand_name = Utils.random_str()
         file_name = rand_name + ".png"
-
+        
         img_path = os.path.join(tmp_folder, file_name)
-        cv2.imwrite(img_path, img_data)
+        img_data = jnp.zeros(shape)
 
         return cls(
             img_path=img_path,
@@ -73,7 +73,7 @@ class SingleImage(BaseModel):
         )
 
     @classmethod
-    def new_cropped(cls, img_data: jnp.array, tmp_folder: str) -> SingleImage:
+    def new_cropped(cls, img_data: jnp.array, tmp_folder="tmp") -> SingleImage:
         rand_name = Utils.random_str()
         file_name = rand_name + ".png"
 
@@ -87,7 +87,7 @@ class SingleImage(BaseModel):
         )
 
     @classmethod
-    def new_arctanned(cls, img_data: jnp.array, tmp_folder: str) -> SingleImage:
+    def new_arctanned(cls, img_data: jnp.array, tmp_folder="tmp") -> SingleImage:
         rand_name = Utils.random_str()
         file_name = rand_name + ".png"
 
@@ -101,11 +101,11 @@ class SingleImage(BaseModel):
         )
 
     @classmethod
-    def new_clipped(cls, img_data: jnp.array, tmp_folder: str) -> SingleImage:
+    def new_clipped(cls, img_data: jnp.array, tmp_folder="tmp") -> SingleImage:
         rand_name = Utils.random_str()
         file_name = rand_name + ".png"
 
-        img_path = os.path.join(tmp_folder, file_name)
+        img_path = os.path.join(file_name, tmp_folder="tmp")
         cv2.imwrite(img_path, img_data)
 
         return cls(
@@ -115,7 +115,7 @@ class SingleImage(BaseModel):
         )
 
     @classmethod
-    def new_rev_arctanned(cls, img_data: jnp.array, tmp_folder: str) -> SingleImage:
+    def new_rev_arctanned(cls, img_data: jnp.array, tmp_folder="tmp") -> SingleImage:
         rand_name = Utils.random_str()
         file_name = rand_name + ".png"
 
@@ -129,7 +129,7 @@ class SingleImage(BaseModel):
         )
 
     @classmethod
-    def new_wo_face(cls, img_data: jnp.array, tmp_folder: str) -> SingleImage:
+    def new_wo_face(cls, img_data: jnp.array, tmp_folder="tmp") -> SingleImage:
         rand_name = Utils.random_str()
         file_name = rand_name + ".png"
 
@@ -344,10 +344,9 @@ class ImageDataSet:
         return obj
 
     @classmethod
-    def modded_from_arrays(cls, img_data: List[jnp.array]) -> ImageDataSet:
-        list = [SingleImage.new_modded(a) for a in img_data]
-        list = SingleImage.run_apply_pixel_to_faces(list)
-
+    def modded_from_arrays(cls, shape: List[int], len: int) -> ImageDataSet:
+        list = [SingleImage.new_modded(shape) for _ in range(len)]
+        
         obj = cls()
 
         obj.list = list
@@ -471,3 +470,35 @@ class ImageDataSet:
             return self.list[self.cur_index]
         else:
             raise StopIteration
+
+
+    def __call__(self) -> List[SingleImage]:
+        return self.list
+
+
+    def __len__(self) -> int:
+        return len(self.list)
+
+    
+    def add_img_data(self, other: ImageDataSet) -> jnp.array:
+        arrs = jnp.asarray([
+            [i.img_data for i in self.list]
+        ])
+
+        other_arrs = jnp.asarray([
+            [i.img_data for i in other]
+        ])
+
+        return arrs + other_arrs
+
+
+    def subtract_img_data(self, other: ImageDataSet) -> jnp.array:
+        arrs = jnp.asarray([
+            [i.img_data for i in self.list]
+        ])
+
+        other_arrs = jnp.asarray([
+            [i.img_data for i in other]
+        ])
+
+        return arrs - other_arrs

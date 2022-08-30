@@ -19,7 +19,8 @@ class ImageHandler:
         def load_single_image(path: str, resize=resize) -> jnp.array:
             img_read = cv2.imread(path)
             img_read = cv2.cvtColor(img_read, cv2.COLOR_BGR2RGB)
-
+            img_read = img_read.astype(jnp.int8)
+            
             return cv2.resize(img_read, resize)
 
         return jax.vmap(load_single_image)(batch)
