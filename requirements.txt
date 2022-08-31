@@ -10,4 +10,4 @@ optax
 opencv-python
 pydantic
 dm-pix
-deepface
+requests
