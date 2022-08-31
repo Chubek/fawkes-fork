@@ -6,6 +6,8 @@ import jax.numpy as jnp
 from optax import adabelief
 
 from .loss import Loss
+from .image_models import ImageModelOps
+from .face_op import FaceBase
 
 from pydantic import BaseModel
 

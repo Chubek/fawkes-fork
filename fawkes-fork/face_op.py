@@ -8,11 +8,11 @@ from mtcnn import MTCNN
 from pydantic import BaseModel
 import cv2
 
-from .feature_extraction import FeatureExtractor
+from .image_models import ImageModelOps
 
 detector = MTCNN()
 
-class ImageBase(BaseModel):
+class FaceBase(BaseModel):
     img_path: str
     resize: Tuple[int, int] = (224, 224)
     img_data: jnp.array = jnp.asarray([])
@@ -64,7 +64,7 @@ class ImageBase(BaseModel):
     def feat_repr(
         self
     ):
-        self.feature_repr = FeatureExtractor.load_feature_reprt(self.face_cropped_tanh)
+        self.feature_repr = ImageModelOps.load_feature_reprt(self.face_cropped_tanh)
 
 
     
