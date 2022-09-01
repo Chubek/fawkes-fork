@@ -1,7 +1,8 @@
 import os
+import zipfile
+
 import requests
 from tqdm import tqdm
-import zipfile
 
 link_list = {
     "arcface.h5": "https://github.com/serengil/deepface_models/releases/download/v1.0/arcface_weights.h5",
@@ -24,23 +25,23 @@ pbar = tqdm(total=len(link_list))
 
 for name, url in link_list.items():
     print(f"Dowloading {name}")
-    
+
     path = os.path.join(MODEL_PATH, name)
 
-    if not os.path.exists(path):   
+    if not os.path.exists(path):
         resp = requests.get(url)
 
         with open(path, "wb") as fwb:
             fwb.write(resp.content)
-    
+
     print(f"{name} successfully downloaded at {path}")
-    
+
     if name.split(".")[-1] == "zip":
         with zipfile.ZipFile(path) as zf:
             zf.extractall()
-            
+
         os.rename("VGGFace2_DeepFace_weights_val-0.9034.h5", "deepface.h5")
-    
+
     pbar.update(1)
 
 print("Done downloading models.")

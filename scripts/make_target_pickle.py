@@ -1,8 +1,9 @@
+import os
+from glob import glob
+
+import jsonpickle
 from fawkes.fork.face_op import FaceBase
 from tqdm import tqdm
-from glob import glob
-import jsonpickle
-import os
 
 TARGET_IMGS = "target_data"
 TARGET_PICKLE = "pickled_targets"
@@ -13,7 +14,7 @@ if not os.path.exists(TARGET_PICKLE):
 
 def load_and_serialize_target_images():
     targets = glob(f"{TARGET_IMGS}/*.[jp][pn][g]")
-   
+
     pbar = tqdm(total=len(targets))
 
     for i, tr in enumerate(targets):
@@ -22,7 +23,7 @@ def load_and_serialize_target_images():
         except:
             pbar.update(1)
             continue
-        
+
         pickled = jsonpickle.encode(fb)
 
         with open(os.path.join(TARGET_PICKLE, f"target_pickled_{i}.json"), "w") as fw:
@@ -31,8 +32,6 @@ def load_and_serialize_target_images():
         pbar.update(1)
 
     pbar.close()
-
-    
 
 
 if __name__ == "__main__":

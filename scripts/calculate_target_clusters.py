@@ -1,9 +1,10 @@
-from typing import Any, Iterable
-import jsonpickle
 import os
-from sklearn.cluster import KMeans
-import numpy as np
 from glob import glob
+from typing import Any, Iterable
+
+import jsonpickle
+import numpy as np
+from sklearn.cluster import KMeans
 
 TARGET_PICKLE_PATH = "pickled_targets"
 ALL_JSONS = glob(f"{TARGET_PICKLE_PATH}/*.json")
@@ -14,6 +15,7 @@ MODEL_TO_USE = "VGGFace"
 
 if not os.path.exists(PICKLED_KMEANS_PATH):
     os.makedirs(PICKLED_KMEANS_PATH)
+
 
 def load_targets_and_get_feats() -> Iterable:
     list_feat = []
@@ -29,7 +31,7 @@ def load_targets_and_get_feats() -> Iterable:
                 list_feat.append([num, *obj_feat.flatten().tolist()])
 
     range = np.arange(0, len(ALL_JSONS))
-    
+
     np.vectorize(load_single)(range)
 
     return np.asarray(list_feat, dtype=object)
@@ -39,9 +41,7 @@ def calculate_clusters(list_feat: Iterable) -> Any:
     kmeans = KMeans(n_clusters=NUM_CLUSTERS)
     kmeans.fit(list_feat)
 
-
-    return kmeans 
-
+    return kmeans
 
 
 def main():
@@ -54,10 +54,5 @@ def main():
         fw.write(pickled_kmeans)
 
 
-
-
 if __name__ == "__main__":
     main()
-
-
-
