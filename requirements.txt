@@ -14,3 +14,4 @@ requests
 gdown
 jsonpickle
 scikit-learn
+python-dotenv

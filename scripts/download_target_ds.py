@@ -1,9 +1,12 @@
 import zipfile
 
 import gdown
+from dotenv import dotenv_values
 
-id = "1W_Cm8lS4GPN6TCOqIkPdTzbtH_dFYfJM"
-output = "target_data/timg.zip"
+CONFIG = dotenv_values(".env")
+
+id = CONFIG['TARGET_DS_GID']
+output = CONFIG['TARGET_OUTPUT']
 
 gdown.download(
     id=id,

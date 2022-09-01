@@ -5,12 +5,15 @@ from typing import List
 
 import jsonpickle
 import numpy as np
+from dotenv import dotenv_values
 from fawkes.fork.face_op import FaceBase
 from scipy.spatial.distance import euclidean
 
-TARGET_PICKLE_PATH = "pickled_targets"
-PICKLED_KMEANS_PATH = "pickled_kmeans/pickled_kmeans.json"
-SELECTED_MODEL = "VGGFace"
+CONFIG = dotenv_values(".env")
+
+TARGET_PICKLE_PATH = CONFIG['TARGET_PICKLE_PATH']
+PICKLED_KMEANS_PATH = CONFIG['PICKLED_KMEANS_PATH']
+SELECTED_MODEL = CONFIG['MODEL_TO_USE']
 
 
 def find_furthest_cluster(

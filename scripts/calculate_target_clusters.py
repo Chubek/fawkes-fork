@@ -4,13 +4,18 @@ from typing import Any, Iterable
 
 import jsonpickle
 import numpy as np
+from dotenv import dotenv_values
 from sklearn.cluster import KMeans
 
-TARGET_PICKLE_PATH = "pickled_targets"
+CONFIG = dotenv_values(".env")
+
+TARGET_PICKLE_PATH = CONFIG['TARGET_PICKLE_PATH']
+NUM_CLUSTERS = CONFIG['NUM_CLUSTERS']
+PICKLED_KMEANS_PATH = CONFIG['PICKLED_KMEANS_PATH']
+MODEL_TO_USE = CONFIG['MODEL_TO_USE']
+
+
 ALL_JSONS = glob(f"{TARGET_PICKLE_PATH}/*.json")
-NUM_CLUSTERS = 50
-PICKLED_KMEANS_PATH = "pickled_kmeans"
-MODEL_TO_USE = "VGGFace"
 
 
 if not os.path.exists(PICKLED_KMEANS_PATH):

@@ -2,7 +2,10 @@ import os
 import zipfile
 
 import requests
+from dotenv import dotenv_values
 from tqdm import tqdm
+
+CONFIG = dotenv_values(".env")
 
 link_list = {
     "arcface.h5": "https://github.com/serengil/deepface_models/releases/download/v1.0/arcface_weights.h5",
@@ -14,7 +17,7 @@ link_list = {
     "vggface.h5": "https://github.com/serengil/deepface_models/releases/download/v1.0/vgg_face_weights.h5",
 }
 
-MODEL_PATH = "face_models"
+MODEL_PATH = CONFIG['MODEL_PATH']
 
 if not os.path.exists(MODEL_PATH):
     os.makedirs(MODEL_PATH)

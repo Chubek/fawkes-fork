@@ -2,11 +2,14 @@ import os
 from glob import glob
 
 import jsonpickle
+from dotenv import dotenv_values
 from fawkes.fork.face_op import FaceBase
 from tqdm import tqdm
 
-TARGET_IMGS = "target_data"
-TARGET_PICKLE = "pickled_targets"
+CONFIG = dotenv_values(".env")
+
+TARGET_IMGS = CONFIG['TARGET_IMGS']
+TARGET_PICKLE = CONFIG['TARGET_PICKLE']
 
 if not os.path.exists(TARGET_PICKLE):
     os.makedirs(TARGET_PICKLE)
