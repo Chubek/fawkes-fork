@@ -1,12 +1,14 @@
 from __future__ import annotations
-from tkinter import Image
 
+from tkinter import Image
 from typing import Dict, List
 
 import jax
 import jax.numpy as jnp
-from .models import deepid, vggface, facenet, facenet512, deepface, openface, arcface
 from scipy.spatial.distance import cdist
+
+from .models import (arcface, deepface, deepid, facenet, facenet512, openface,
+                     vggface)
 
 models = {
     "ArcFace": arcface.loadArcFace(),

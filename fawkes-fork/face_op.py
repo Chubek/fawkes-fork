@@ -1,16 +1,18 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, List, Tuple, Dict
-import jax.numpy as jnp
+from typing import Any, Dict, List, Tuple
+
+import cv2
 import jax
+import jax.numpy as jnp
 from mtcnn import MTCNN
 from pydantic import BaseModel
-import cv2
 
 from .image_models import ImageModelOps
 
 detector = MTCNN()
+
 
 class FaceBase(BaseModel):
     img_path: str
@@ -20,6 +22,7 @@ class FaceBase(BaseModel):
     face_cropped_tanh: jnp.array = jnp.asarray([])
     feature_repr: Dict = {}
     box: Tuple[int, int, int, int] = (0, 0, 0, 0)
+    protected_face: jnp.arrray = jnp.array([])
 
     @classmethod
     def load_and_new(cls, img_path: str, resize=(224, 224)):
@@ -32,7 +35,6 @@ class FaceBase(BaseModel):
 
         return obj
 
-
     def load_image(
         self
     ):
@@ -40,7 +42,6 @@ class FaceBase(BaseModel):
         self.img_data = cv2.cvtColor(self.img_data, cv2.COLOR_BGR2RGB)
         self.img_data = self.img_data.astype(jnp.int8)
 
-    
     def detect_face(
         self
     ):
@@ -50,7 +51,7 @@ class FaceBase(BaseModel):
             raise ValueError("No faces detected")
 
         x, y, w, h = detected_faces[0]['box']
-        
+
         self.detect_face = self.img_data[y:y + h, x:x + w, :]
         self.detect_face = cv2.resize(self.detect_face, self.resize)
         self.box = (x, y, w, h)
@@ -60,13 +61,17 @@ class FaceBase(BaseModel):
     ):
         self.face_cropped_tanh = jnp.tanh(self.face_cropped)
 
-
     def feat_repr(
         self
     ):
-        self.feature_repr = ImageModelOps.load_feature_reprt(self.face_cropped_tanh)
+        self.feature_repr = ImageModelOps.load_feature_reprt(
+            self.face_cropped_tanh)
 
+    def reassemble(
+        self
+    ) -> jnp.array:
+        img_data_copy = self.img_data.copy()
 
-    
+        x, y, w, h = self.box
 
-
+        img_data_copy[img_data_copy[y:y + h, x:x + w, 3]] = self.protected_face
