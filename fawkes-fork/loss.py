@@ -1,4 +1,5 @@
 from __future__ import annotations
+from re import S
 from typing import Dict, Tuple
 
 import jax.numpy as jnp
@@ -6,6 +7,7 @@ import jax
 
 from fawkes import get_dissim_map_and_sim_score
 
+import optax
 
 from pydantic import BaseModel
 
@@ -18,12 +20,12 @@ class Loss(BaseModel):
 
     @staticmethod
     def dissim_map_and_score(
-        source_img_arctan: jnp.array,
-        target_img_raw: jnp.array,
+        source_img_rctan: jnp.array,
+        target_img_rctan: jnp.array,
     ) -> Tuple[float, jnp.array]:
         dssim_score, maps = get_dissim_map_and_sim_score(
-            source_img_arctan, 
-            target_img_raw
+            source_img_rctan, 
+            target_img_rctan
         )
 
         maps_jnp = sum([[jnp.asarray(t[1])
@@ -52,12 +54,11 @@ class Loss(BaseModel):
 
     @staticmethod
     def loss_score_model_dicts(
+        params: optax.Params,
         target_image_features: Dict,
         modded_image_features: Dict,
-        dssim_map: jnp.array,
-        modifier: jnp.array,
-        budget: float       
-    ) -> float:
+        dssim_map: jnp.array,     
+    ) -> Tuple[jnp.array, float, float]:
 
         ret = {}
 
@@ -67,8 +68,8 @@ class Loss(BaseModel):
             a=target_image_features,
             b=modded_image_features,
             dssim_map=dssim_map,
-            modifier=modifier,
-            budget=budget    
+            modifier=params['modifier'],
+            budget=params['budget']    
         ):
             a_feat = a[model_name]
             b_feat = b[model_name]
@@ -92,4 +93,8 @@ class Loss(BaseModel):
 
         jax.vmap(single_loss)(list)
 
-        return ret
+        arr = jnp.asarray(list(ret.values()))
+        mean = jnp.mean(arr)
+        sm = jnp.sum(arr)
+
+        return arr
