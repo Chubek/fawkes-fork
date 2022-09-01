@@ -1,6 +1,7 @@
 from __future__ import annotations
+from statistics import mode
 
-from typing import Dict, List
+from typing import Dict, List, Iterable
 
 import jax
 import jax.numpy as jnp
@@ -8,6 +9,9 @@ from scipy.spatial.distance import cdist
 
 from .models import (arcface, deepface, deepid, facenet, facenet512, openface,
                      vggface)
+
+import cv2
+import numpy as np
 
 models = {
     "ArcFace": arcface.loadArcFace(),
@@ -20,35 +24,34 @@ models = {
 
 
 class ImageModelOps:
-    @jax.jit
+
     @staticmethod
     def load_feature_reprt(
-        image_pixels: jnp.array
+        image_pixels: Iterable
     ):
         reprs = {}
 
-        @jax.jit
-        def make_repr(model_name, image_pixels=image_pixels, models=models):
-            reprs[model_name] = models[model_name].predict(image_pixels)
+        for k, v in models.items():
+            input_shape = v.layers[0].input_shape
 
-        list = [
-            "ArcFace",
-            "DeepFace",
-            "Facenet",
-            "FaceNet512",
-            "DeepId",
-            "VGGFace",
-        ]
+            if type(input_shape) == list:
+                input_shape = input_shape[0][1:3]
+            else:
+                input_shape = input_shape[1:3]
 
-        jax.vmap(make_repr)(list)
+            if input_shape == (55, 47):
+                input_shape = (47, 55)
+            
+            image_pixels = cv2.resize(np.asarray(image_pixels), input_shape)
+
+            reprs[k] = v.predict(image_pixels[np.newaxis, :, :, :])
 
         return reprs
 
-    @jax.jit
     @staticmethod
     def compare_faces(
-        image_a_features: jnp.array,
-        image_b_features: jnp.array,
+        image_a_features: Iterable,
+        image_b_features: Iterable,
     ) -> jnp.array:
         return jnp.asarray(
             cdist(
@@ -57,7 +60,6 @@ class ImageModelOps:
             )
         )
 
-    @jax.jit
     @staticmethod
     def compare_features_dict_models(
         image_feats_a: Dict,
@@ -65,37 +67,21 @@ class ImageModelOps:
     ):
         dists = {}
 
-        @jax.jit
-        def get_distance(
-            model_name: str,
-            a=image_feats_a,
-            b=image_feats_b
-        ):
-            a_feat = a[model_name]
-            b_feat = b[model_name]
+        for k, _ in models.items():
+            a_feat = image_feats_a[k]
+            b_feat = image_feats_b[k]
 
-            dists[model_name] = ImageModelOps.compare_faces(
+            dists[k] = ImageModelOps.compare_faces(
                 a_feat,
                 b_feat,
             )
-
-        list = [
-            "ArcFace",
-            "DeepFace",
-            "Facenet",
-            "FaceNet512",
-            "DeepId",
-            "VGGFace",
-        ]
-
-        jax.vmap(get_distance)(list)
 
         return dists
 
     @staticmethod
     def compare_images_and_apply_threshold(
-        image_a_features: jnp.array,
-        image_b_features: jnp.array,
+        image_a_features: Iterable,
+        image_b_features: Iterable,
         threshold: float,
     ) -> bool:
         dist_map = ImageModelOps.compare_faces(
@@ -111,7 +97,6 @@ class ImageModelOps:
         return False
 
     @staticmethod
-    @jax.jit
     def compare_feature_apply_thresh_dict(
         dict_feat_a: Dict,
         dict_feat_b: Dict,
@@ -119,33 +104,14 @@ class ImageModelOps:
     ) -> Dict[str, bool]:
         res = {}
 
-        @jax.jit
-        def compare_feat(
-            key: str,
-            a=dict_feat_a,
-            b=dict_feat_b,
-            thresh=threshold,
-        ):
-            a_feat = a[key]
-            b_feat = b[key]
+        for k, _ in models.items():
+            a_feat = dict_feat_a[k]
+            b_feat = dict_feat_b[k]
 
-            res[key] = ImageModelOps.compare_images_and_apply_threshold(
+            res[k] = ImageModelOps.compare_images_and_apply_threshold(
                 a_feat,
                 b_feat,
-                thresh
+                threshold
             )
 
-        list = [
-            "ArcFace",
-            "DeepFace",
-            "Facenet",
-            "FaceNet512",
-            "DeepId",
-            "VGGFace",
-        ]
-
-        jax.vmap(compare_feat)(list)
-
         return res
-
-

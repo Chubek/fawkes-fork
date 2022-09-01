@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from re import S
 from time import time_ns
-from typing import Dict, Tuple, Iterable
+from typing import Dict, Tuple
 
 import jax
 import jax.numpy as jnp
@@ -11,15 +11,15 @@ from dm_pix import ssim
 from fawkes import get_dissim_map_and_sim_score
 from pydantic import BaseModel
 
-from .image_models import ImageModelOps
+from fawkes.fork.image_models import ImageModelOps
 
 
 class Loss(BaseModel):
 
     @staticmethod
     def dissim_map_and_score(
-        source_img_rctan: Iterable,
-        target_img_rctan: Iterable,
+        source_img_rctan: jnp.array,
+        target_img_rctan: jnp.array,
     ) -> Tuple[float, jnp.array]:
         dssim_score, maps = get_dissim_map_and_sim_score(
             source_img_rctan,
@@ -37,10 +37,10 @@ class Loss(BaseModel):
 
     @staticmethod
     def loss_score(
-        target_image_features: Iterable,
-        modded_image_features: Iterable,
-        dssim_map: Iterable,
-        modifier: Iterable,
+        target_image_features: jnp.array,
+        modded_image_features: jnp.array,
+        dssim_map: jnp.array,
+        modifier: jnp.array,
         budget: float
     ) -> float:
 
@@ -55,9 +55,9 @@ class Loss(BaseModel):
     def loss_score_model_dicts(
         params: optax.Params,
         target_image_features: Dict,
-        dssim_map: Iterable,
+        dssim_map: jnp.array,
         i: int,
-    ) -> Tuple[Iterable, float, float]:
+    ) -> Tuple[jnp.array, float, float]:
 
         ret = {}
 

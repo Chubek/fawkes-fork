@@ -2,15 +2,16 @@ from __future__ import annotations
 
 from copy import deepcopy
 from time import time_ns
-from typing import Any, Dict, List, Optional, Iterable
+from typing import Any, Dict, List, Optional
 
 import jax
 import jax.numpy as jnp
 from optax import adabelief, apply_updates
 from pydantic import BaseModel
 
-from .face_op import FaceBase
-from .loss import Loss
+from fawkes.fork.face_op import FaceBase
+from fawkes.fork.image_models import ImageModelOps
+from fawkes.fork.loss import Loss
 
 
 class Optimizer(BaseModel):
@@ -19,9 +20,9 @@ class Optimizer(BaseModel):
     optimizer: Any = None
     source_images: List[FaceBase] = []
     target_images: List[FaceBase] = []
-    modifier: Iterable = jnp.array([])
-    budget: Iterable = jnp.array([])
-    best_results: Iterable = jnp.array([])
+    modifier: jnp.array = jnp.array([])
+    budget: jnp.array = jnp.array([])
+    best_results: jnp.array = jnp.array([])
     params: Dict = {}
     opt_state: Any = None
     num_img: int = 0

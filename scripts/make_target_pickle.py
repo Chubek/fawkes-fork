@@ -5,27 +5,34 @@ import jsonpickle
 import os
 
 TARGET_IMGS = "target_data"
+TARGET_PICKLE = "pickled_targets"
+
+if not os.path.exists(TARGET_PICKLE):
+    os.makedirs(TARGET_PICKLE)
+
 
 def load_and_serialize_target_images():
     targets = glob(f"{TARGET_IMGS}/*.[jp][pn][g]")
-
-    list_imgs = []
-    
+   
     pbar = tqdm(total=len(targets))
 
-    for tr in targets:
-        fb = FaceBase.load_and_new(tr)
+    for i, tr in enumerate(targets):
+        try:
+            fb = FaceBase.load_and_new(tr)
+        except:
+            pbar.update(1)
+            continue
+        
+        pickled = jsonpickle.encode(fb)
 
-        list_imgs.append(fb)
+        with open(os.path.join(TARGET_PICKLE, f"target_pickled_{i}.json"), "w") as fw:
+            fw.write(pickled)
 
         pbar.update(1)
 
     pbar.close()
 
-    pickled = jsonpickle.encode(list_imgs)
-
-    with open(os.path.join(TARGET_IMGS, "pickled_obj.json", "w")) as fr:
-        fr.write(pickled)
+    
 
 
 if __name__ == "__main__":

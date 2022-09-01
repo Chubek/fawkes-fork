@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Iterable
 from glob import glob
 
 
@@ -18,12 +18,12 @@ detector = MTCNN()
 class FaceBase(BaseModel):
     img_path: str
     resize: Tuple[int, int] = (224, 224)
-    img_data: jnp.array = jnp.asarray([])
-    face_cropped: jnp.array = jnp.asarray([])
-    face_cropped_tanh: jnp.array = jnp.asarray([])
+    img_data: Iterable = jnp.asarray([])
+    face_cropped: Iterable = jnp.asarray([])
+    face_cropped_tanh: Iterable = jnp.asarray([])
     feature_repr: Dict = {}
     box: Tuple[int, int, int, int] = (0, 0, 0, 0)
-    protected_face: jnp.arrray = jnp.array([])
+    protected_face: Iterable = jnp.array([])
 
     @classmethod
     def load_and_new(cls, img_path: str, resize=(224, 224)):
@@ -41,7 +41,6 @@ class FaceBase(BaseModel):
     ):
         self.img_data = cv2.imread(self.img_path)
         self.img_data = cv2.cvtColor(self.img_data, cv2.COLOR_BGR2RGB)
-        self.img_data = self.img_data.astype(jnp.int8)
 
     def detect_face(
         self
@@ -53,8 +52,10 @@ class FaceBase(BaseModel):
 
         x, y, w, h = detected_faces[0]['box']
 
-        self.detect_face = self.img_data[y:y + h, x:x + w, :]
-        self.detect_face = cv2.resize(self.detect_face, self.resize)
+        self.face_cropped = self.img_data[y:y + h, x:x + w, :]
+        self.face_cropped = cv2.resize(self.face_cropped, self.resize)
+        self.face_cropped = jnp.asarray(self.face_cropped)
+        self.face_cropped = self.face_cropped.astype(jnp.int8)
         self.box = (x, y, w, h)
 
     def tanh_face(
