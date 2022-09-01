@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from enum import Enum
 from typing import Any, Dict, List, Tuple
+from glob import glob
+
 
 import cv2
 import jax
@@ -75,3 +76,5 @@ class FaceBase(BaseModel):
         x, y, w, h = self.box
 
         img_data_copy[img_data_copy[y:y + h, x:x + w, 3]] = self.protected_face
+
+

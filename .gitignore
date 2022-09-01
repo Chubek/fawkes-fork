@@ -185,3 +185,5 @@ cython_debug/
 #.idea/
 
 face_models/
+
+target_data/

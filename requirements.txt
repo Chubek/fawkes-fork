@@ -11,3 +11,5 @@ opencv-python
 pydantic
 dm-pix
 requests
+gdown
+jsonpickle

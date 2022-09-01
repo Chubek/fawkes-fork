@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from tkinter import Image
 from typing import Dict, List
 
 import jax
@@ -148,3 +147,5 @@ class ImageModelOps:
         jax.vmap(compare_feat)(list)
 
         return res
+
+

@@ -10,7 +10,6 @@ from optax import adabelief, apply_updates
 from pydantic import BaseModel
 
 from .face_op import FaceBase
-from .image_models import ImageModelOps
 from .loss import Loss
 
 
