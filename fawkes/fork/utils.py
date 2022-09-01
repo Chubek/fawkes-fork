@@ -1,9 +1,10 @@
 from random import randint
 from string import ascii_letters
 
+import jax.numpy as jnp
+import jax
 
 class Utils:
-
     @staticmethod
     def random_str(letters=6):
         return "".join([
@@ -12,3 +13,8 @@ class Utils:
             for _ in
             range(letters)
         ])
+
+
+
+
+

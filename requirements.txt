@@ -13,3 +13,4 @@ dm-pix
 requests
 gdown
 jsonpickle
+scikit-learn

@@ -187,3 +187,4 @@ cython_debug/
 face_models/
 pickled_targets/
 target_data/
+pickled_kmeans/
