@@ -57,7 +57,6 @@ class Optimizer(BaseModel):
         obj.params = {
             "modifier": obj.modifier,
             "budget": obj.budget,
-            "best_results": obj.best_results
         }
 
         obj.opt_state = obj.optimizer.init(obj.params)
@@ -82,18 +81,16 @@ class Optimizer(BaseModel):
 
             self.source_images[i].protected_face = simg.face_cropped + maps_mean
 
-            new_modded_feature = deepcopy(simg.feat_repr)
+            new_modded_feature = deepcopy(simg.feature_repr)
 
             for k, v in new_modded_feature.items():
                 new_modded_feature[k] = v + maps_mean
 
-            self.params['best_results'][i] = new_modded_feature
-
             gradient = jax.jacrev(Loss.loss_score_model_dicts)(
                 self.params,
-                timg.feat_repr,
+                new_modded_feature,
+                timg.feature_repr,
                 maps_mean,
-                i
             )
 
             updates, self.opt_state = self.optimizer.update(

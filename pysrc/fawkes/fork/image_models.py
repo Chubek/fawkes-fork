@@ -55,9 +55,9 @@ class ImageModelOps:
     ) -> jnp.array:
         return jnp.asarray(
             cdist(
-                image_a_features,
-                image_b_features
-            )
+                np.asarray(image_a_features),
+                np.asarray(image_b_features)
+            ).tolist()
         )
 
     @staticmethod

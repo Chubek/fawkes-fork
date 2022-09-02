@@ -9,7 +9,7 @@ from fawkes.fork.target import find_furthest_cluster
 def fawkes_main(
     source_paths: List[str], 
     lr=1e-5,
-    max_iter=200
+    max_iter=1
 ) -> List[str]:
     img_sources = [FaceBase.load_and_new(p) for p in source_paths]
     img_targets = find_furthest_cluster(img_sources)

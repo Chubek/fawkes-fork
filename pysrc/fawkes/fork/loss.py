@@ -10,7 +10,7 @@ import optax
 from dm_pix import ssim
 from fawkes_ext import get_dissim_map_and_sim_score
 from pydantic import BaseModel
-
+import numpy as np
 from .image_models import ImageModelOps
 
 
@@ -49,7 +49,12 @@ class Loss(BaseModel):
 
             jnps.append(arr)
 
-        maps_mean = jnp.mean(jnp.asarray(jnps))
+        sum = jnp.asarray(jnps[0])[:, :, jnp.newaxis]
+
+        for j in jnps[1:]:
+            sum += jnp.asarray(j)[:, :, jnp.newaxis]
+
+        maps_mean = sum / len(jnps)
 
         return (dssim_score, maps_mean)
 
@@ -62,28 +67,34 @@ class Loss(BaseModel):
         budget: float
     ) -> float:
 
+        i, j, _ = modded_image_features.shape
+
+
+        modded_image_features = modded_image_features.flatten()[jnp.newaxis, :]
+        target_image_features = (target_image_features + jnp.zeros((i, j, 1))).flatten()[jnp.newaxis, :]
+
         dist_tfeat_mfeat = ImageModelOps.compare_faces(
             target_image_features, modded_image_features)
-        modified_maximum = modifier * \
-            jnp.max(dssim_map - budget, jnp.zeros(dssim_map.shape))
+      
+        modified_maximum = modifier[0] * \
+            jnp.max(jnp.asarray([dssim_map - budget, jnp.zeros(dssim_map.shape)]))
 
         return dist_tfeat_mfeat + modified_maximum
 
     @staticmethod
     def loss_score_model_dicts(
         params: optax.Params,
+        source_image_features: Dict,
         target_image_features: Dict,
         dssim_map: Iterable,
-        i: int,
     ) -> Tuple[Iterable, float, float]:
 
-        ret = {}
+        ret = []
 
-        @jax.jit
         def single_loss(
             model_name: str,
             a=target_image_features,
-            b=params['best_results'][i],
+            b=source_image_features,
             dssim_map=dssim_map,
             modifier=params['modifier'],
             budget=params['budget']
@@ -91,13 +102,13 @@ class Loss(BaseModel):
             a_feat = a[model_name]
             b_feat = b[model_name]
 
-            ret[model_name] = Loss.loss_score(
+            ret.append(Loss.loss_score(
                 a_feat,
                 b_feat,
                 dssim_map=dssim_map,
                 modifier=modifier,
                 budget=budget
-            )
+            ))
 
         list = [
             "ArcFace",
@@ -108,9 +119,10 @@ class Loss(BaseModel):
             "VGGFace",
         ]
 
-        jax.vmap(single_loss)(list)
+        for l in list:
+            single_loss(l)
 
-        arr = jnp.asarray(list(ret.values()))
+        arr = jnp.asarray(ret)
         mean = jnp.mean(arr)
 
         return mean

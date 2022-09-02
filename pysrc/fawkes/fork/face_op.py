@@ -9,7 +9,7 @@ import jax
 import jax.numpy as jnp
 from mtcnn import MTCNN
 from pydantic import BaseModel
-
+import numpy as np
 from .image_models import ImageModelOps
 
 detector = MTCNN()
@@ -41,7 +41,7 @@ class FaceBase(BaseModel):
         self
     ):
         self.img_data = cv2.imread(self.img_path)
-        self.img_data = cv2.cvtColor(self.img_data, cv2.COLOR_BGR2RGB)
+        #self.img_data = cv2.cvtColor(self.img_data, cv2.COLOR_BGR2RGB)
 
     def detect_face(
         self
@@ -77,25 +77,23 @@ class FaceBase(BaseModel):
         protected_face_copy = self.protected_face.copy()
 
         x, y, w, h = self.box
-        i, j = protected_face_copy.shape
+        i, j, _ = protected_face_copy.shape
 
-        i_pad = (w - i)
-        j_pad = (h - j)
+        impeceble_pixels = protected_face_copy - self.face_cropped
 
-        protected_face_copy = jnp.pad(protected_face_copy,((j_pad // 2, j_pad // 2 + j_pad % 2), 
-                     (i_pad // 2, i_pad // 2 + j_pad % 2)),
-                  mode = 'constant')
+        img_data_copy[y:y + i, x:x + j, :] += impeceble_pixels
 
-
-        img_data_copy[img_data_copy[y:y + h, x:x + w, 3]] = protected_face_copy
-
-        self.final_img = img_data_copy
+        self.final_img = np.asarray(img_data_copy)
 
     def save_img(self, save_path: str):
+        self.reassemble()
+
         cv2.imwrite(save_path, self.final_img)
 
     
     def img_to_b64_urlencoded(self) -> str:
+        self.reassemble()
+        
         _, buffer = cv2.imencode(".png", self.final_img)
         buffer_b64 = bs.b64encode(buffer)
 
