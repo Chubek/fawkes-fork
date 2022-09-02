@@ -79,9 +79,7 @@ class FaceBase(BaseModel):
         x, y, w, h = self.box
         i, j, _ = protected_face_copy.shape
 
-        impeceble_pixels = protected_face_copy - self.face_cropped
-
-        img_data_copy[y:y + i, x:x + j, :] += impeceble_pixels
+        img_data_copy[y:y + i, x:x + j, :] += protected_face_copy
 
         self.final_img = np.asarray(img_data_copy)
 

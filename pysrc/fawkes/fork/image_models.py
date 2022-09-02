@@ -53,12 +53,8 @@ class ImageModelOps:
         image_a_features: Iterable,
         image_b_features: Iterable,
     ) -> jnp.array:
-        return jnp.asarray(
-            cdist(
-                np.asarray(image_a_features),
-                np.asarray(image_b_features)
-            ).tolist()
-        )
+            return jnp.linalg.norm(image_b_features - image_a_features)
+
 
     @staticmethod
     def compare_features_dict_models(

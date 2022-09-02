@@ -24,8 +24,10 @@ def fawkes_main(
 
     fin_src_imgs = optimizer.source_images
 
+    fin_src_imgs[0].save_img("kk.png")
+
     return [f.img_to_b64_urlencoded() for f in fin_src_imgs]
 
 
 
-print(fawkes_main(["/home/chubak/obama.png"]))
+fawkes_main(["/home/chubak/obama.png"])

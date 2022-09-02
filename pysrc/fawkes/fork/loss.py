@@ -67,12 +67,6 @@ class Loss(BaseModel):
         budget: float
     ) -> float:
 
-        i, j, _ = modded_image_features.shape
-
-
-        modded_image_features = modded_image_features.flatten()[jnp.newaxis, :]
-        target_image_features = (target_image_features + jnp.zeros((i, j, 1))).flatten()[jnp.newaxis, :]
-
         dist_tfeat_mfeat = ImageModelOps.compare_faces(
             target_image_features, modded_image_features)
       
@@ -84,9 +78,9 @@ class Loss(BaseModel):
     @staticmethod
     def loss_score_model_dicts(
         params: optax.Params,
-        source_image_features: Dict,
         target_image_features: Dict,
         dssim_map: Iterable,
+        i: int
     ) -> Tuple[Iterable, float, float]:
 
         ret = []
@@ -94,7 +88,7 @@ class Loss(BaseModel):
         def single_loss(
             model_name: str,
             a=target_image_features,
-            b=source_image_features,
+            b=params['best_results'][i],
             dssim_map=dssim_map,
             modifier=params['modifier'],
             budget=params['budget']

@@ -46,6 +46,7 @@ def find_furthest_cluster(
         max_dist = max(dists, key=lambda x: x[1])[0]
         furthest_label = [i for i, l in enumerate(
             kmeans.labels_) if l == max_dist]
+
         random_choice = np.random.choice(furthest_label)
         f = files[random_choice]
 
@@ -55,6 +56,7 @@ def find_furthest_cluster(
 
             target_imgs.append(obj)
 
-    np.vectorize(get_furthest)(np.arange(0, len(source_imgs)))
+    for i in range(len(source_imgs)):
+        get_furthest(i)
 
     return target_imgs
