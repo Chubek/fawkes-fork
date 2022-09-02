@@ -26,6 +26,9 @@ class Optimizer(BaseModel):
     opt_state: Any = None
     num_img: int = 0
 
+    class Config:
+        arbitrary_types_allowed = True
+
     @classmethod
     def new(
         cls,
@@ -38,9 +41,12 @@ class Optimizer(BaseModel):
         obj.optimizer = adabelief(obj.lr)
         obj.source_images = source_images
         obj.target_images = target_images
+        
+        shape = tuple([len(source_images)] + list(source_images[0].face_cropped.shape))
+
         obj.modifier = jax.random.uniform(
             jax.random.PRNGKey(time_ns()),
-            shape=tuple([len(source_images)] + source_images[0].img_data.shape)) * 1e-4
+            shape=shape) * 1e-4
         obj.budget = jnp.ones(len(source_images))
         obj.best_results = [
             si.feature_repr
@@ -60,11 +66,12 @@ class Optimizer(BaseModel):
 
         return obj
 
-    @jax.jit
     def one_round(self):
-        for i, simg, timg in enumerate(zip(self.source_images, self.target_images)):
-            simg_tanh = simg.tanh_face
-            timg_tanh = timg.tanh_face
+        for i, tup in enumerate(zip(self.source_images, self.target_images)):
+            simg, timg = tup
+            
+            simg_tanh = simg.face_cropped_tanh
+            timg_tanh = timg.face_cropped_tanh
 
             simg_tanh = simg_tanh + self.params['modifier'][i]
 
@@ -73,7 +80,7 @@ class Optimizer(BaseModel):
                 timg_tanh
             )
 
-            self.source_images[i].protected_face = maps_mean
+            self.source_images[i].protected_face = simg.face_cropped + maps_mean
 
             new_modded_feature = deepcopy(simg.feat_repr)
 
@@ -97,7 +104,6 @@ class Optimizer(BaseModel):
 
             self.params = apply_updates(self.params, updates)
 
-    @jax.jit
     def fit(self, max_iter=100):
         for _ in range(max_iter):
             self.one_round()

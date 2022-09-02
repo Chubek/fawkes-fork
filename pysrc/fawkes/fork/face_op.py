@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Tuple, Iterable
 from glob import glob
-
+import base64 as bs
 
 import cv2
 import jax
@@ -24,6 +24,7 @@ class FaceBase(BaseModel):
     feature_repr: Dict = {}
     box: Tuple[int, int, int, int] = (0, 0, 0, 0)
     protected_face: Iterable = jnp.array([])
+    final_img: Iterable = jnp.array([])
 
     @classmethod
     def load_and_new(cls, img_path: str, resize=(224, 224)):
@@ -73,9 +74,30 @@ class FaceBase(BaseModel):
         self
     ) -> jnp.array:
         img_data_copy = self.img_data.copy()
+        protected_face_copy = self.protected_face.copy()
 
         x, y, w, h = self.box
+        i, j = protected_face_copy.shape
 
-        img_data_copy[img_data_copy[y:y + h, x:x + w, 3]] = self.protected_face
+        i_pad = (w - i)
+        j_pad = (h - j)
+
+        protected_face_copy = jnp.pad(protected_face_copy,((j_pad // 2, j_pad // 2 + j_pad % 2), 
+                     (i_pad // 2, i_pad // 2 + j_pad % 2)),
+                  mode = 'constant')
 
 
+        img_data_copy[img_data_copy[y:y + h, x:x + w, 3]] = protected_face_copy
+
+        self.final_img = img_data_copy
+
+    def save_img(self, save_path: str):
+        cv2.imwrite(save_path, self.final_img)
+
+    
+    def img_to_b64_urlencoded(self) -> str:
+        _, buffer = cv2.imencode(".png", self.final_img)
+        buffer_b64 = bs.b64encode(buffer)
+
+
+        return f"data:image/png;base64, {buffer_b64}"

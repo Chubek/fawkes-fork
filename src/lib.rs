@@ -8,7 +8,7 @@ use rgb::*;
 fn get_dissim_map_and_sim_score(
     source_image: Vec<Vec<Vec<u8>>>,
     target_image: Vec<Vec<Vec<u8>>>,
-) -> PyResult<(f64, Vec<(f64, Vec<Vec<f32>>)>)>{
+) -> PyResult<(f64, Vec<Vec<Vec<f32>>>)>{
 
     let width_src = source_image.len();
     let height_src = source_image[0].len();
@@ -57,7 +57,6 @@ fn get_dissim_map_and_sim_score(
    
     let maps_and_scores_tuple: Vec<_> = map.into_iter()
                             .map(|x|  {
-                                let ssim_score = x.ssim;
                                 let mapi = x.map;
                                 
                                 let v: Vec<_> = mapi
@@ -65,7 +64,7 @@ fn get_dissim_map_and_sim_score(
                                                     .map(|x| x.to_vec())
                                                     .collect();
 
-                                (ssim_score, v)
+                                v
                             })
                             .collect::<_>();
 
@@ -73,7 +72,7 @@ fn get_dissim_map_and_sim_score(
 }
 
 #[pymodule]
-fn fawkes(_py: Python, m: &PyModule) -> PyResult<()> {
+fn fawkes_ext(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(get_dissim_map_and_sim_score, m)?)?;
     Ok(())
 }

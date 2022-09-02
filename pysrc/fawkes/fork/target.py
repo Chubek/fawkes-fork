@@ -12,7 +12,7 @@ from scipy.spatial.distance import euclidean
 CONFIG = dotenv_values(".env")
 
 TARGET_PICKLE_PATH = CONFIG['TARGET_PICKLE_PATH']
-PICKLED_KMEANS_PATH = CONFIG['PICKLED_KMEANS_PATH']
+PICKLED_KMEANS_PATH = CONFIG['PICKLED_KMEANS_FILE']
 SELECTED_MODEL = CONFIG['MODEL_TO_USE']
 
 
@@ -35,7 +35,7 @@ def find_furthest_cluster(
         simg = source_imgs[i]
 
         feat = simg.feature_repr[SELECTED_MODEL]
-        feat = [i, *feat.flatten().tolist()]
+        feat = np.asarray([i, *feat.flatten().tolist()]).reshape(1, -1)
 
         centrd = kmeans.predict(feat)[0]
         cc = kmeans.cluster_centers_[centrd]

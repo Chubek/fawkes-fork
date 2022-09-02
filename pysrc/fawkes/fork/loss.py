@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from re import S
 from time import time_ns
-from typing import Dict, Tuple, Iterable
+from typing import Dict, Iterable, Tuple
 
 import jax
 import jax.numpy as jnp
 import optax
 from dm_pix import ssim
-from fawkes import get_dissim_map_and_sim_score
+from fawkes_ext import get_dissim_map_and_sim_score
 from pydantic import BaseModel
 
 from .image_models import ImageModelOps
@@ -18,20 +18,38 @@ class Loss(BaseModel):
 
     @staticmethod
     def dissim_map_and_score(
-        source_img_rctan: Iterable,
-        target_img_rctan: Iterable,
+        source_img_tanh: Iterable,
+        target_img_tanh: Iterable,
     ) -> Tuple[float, jnp.array]:
         dssim_score, maps = get_dissim_map_and_sim_score(
-            source_img_rctan,
-            target_img_rctan
+            source_img_tanh.astype(jnp.uint8).tolist(),
+            target_img_tanh.astype(jnp.uint8).tolist()
         )
 
-        maps_jnp = sum([[jnp.asarray(t[1])
-                        for t in tup]
-                        for tup in maps
-                        ], [])
+        jnps = []
+        base_shape = None
 
-        maps_mean = jnp.mean(jnp.asarray(maps_jnp))
+        for i, m in enumerate(maps):
+            arr = jnp.asarray(m)
+            
+            if i == 0:
+                base_shape = arr.shape
+                jnps.append(arr)
+                continue
+
+            i, j = arr.shape
+            ii, jj = base_shape
+
+            i_pad = (ii - i)
+            j_pad = (jj - j)
+
+            arr = jnp.pad(arr,((j_pad // 2, j_pad // 2 + j_pad % 2), 
+                     (i_pad // 2, i_pad // 2 + j_pad % 2)),
+                  mode = 'constant')
+
+            jnps.append(arr)
+
+        maps_mean = jnp.mean(jnp.asarray(jnps))
 
         return (dssim_score, maps_mean)
 

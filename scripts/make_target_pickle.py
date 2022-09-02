@@ -3,16 +3,16 @@ from glob import glob
 
 import jsonpickle
 from dotenv import dotenv_values
-from fawkes.fork.face_op import FaceBase
+from pysrc.fawkes.fork.face_op import FaceBase
 from tqdm import tqdm
 
 CONFIG = dotenv_values(".env")
 
 TARGET_IMGS = CONFIG['TARGET_IMGS']
-TARGET_PICKLE = CONFIG['TARGET_PICKLE']
+TARGET_PICKLE_PATH = CONFIG['TARGET_PICKLE_PATH']
 
-if not os.path.exists(TARGET_PICKLE):
-    os.makedirs(TARGET_PICKLE)
+if not os.path.exists(TARGET_PICKLE_PATH):
+    os.makedirs(TARGET_PICKLE_PATH)
 
 
 def load_and_serialize_target_images():
@@ -29,7 +29,7 @@ def load_and_serialize_target_images():
 
         pickled = jsonpickle.encode(fb)
 
-        with open(os.path.join(TARGET_PICKLE, f"target_pickled_{i}.json"), "w") as fw:
+        with open(os.path.join(TARGET_PICKLE_PATH, f"target_pickled_{i}.json"), "w") as fw:
             fw.write(pickled)
 
         pbar.update(1)
