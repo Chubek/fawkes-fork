@@ -73,16 +73,16 @@ class Optimizer(BaseModel):
             simg_tanh = simg.face_cropped_tanh
             timg_tanh = timg.face_cropped_tanh
 
-            simg_tanh = simg_tanh + self.params['modifier'][i]
+            simg_tanh = simg_tanh * self.params['modifier'][i]
 
             _, maps_mean = Loss.dissim_map_and_score(
                 simg_tanh,
                 timg_tanh
             )
 
-            self.source_images[i].protected_face = maps_mean
+            self.source_images[i].protected_face = jnp.dstack([maps_mean, maps_mean, maps_mean])
 
-            
+
             gradient = jax.jacrev(Loss.loss_score_model_dicts)(
                 self.params,
                 timg.feature_repr,
@@ -97,6 +97,8 @@ class Optimizer(BaseModel):
             )
 
             self.params = apply_updates(self.params, updates)
+
+        
 
     def fit(self, max_iter=100):
         for _ in range(max_iter):

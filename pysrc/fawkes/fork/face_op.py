@@ -57,12 +57,23 @@ class FaceBase(BaseModel):
         self.face_cropped = cv2.resize(self.face_cropped, self.resize)
         self.face_cropped = jnp.asarray(self.face_cropped)
         self.face_cropped = self.face_cropped.astype(jnp.int8)
+        self.protected_face = self.face_cropped.copy()
         self.box = (x, y, w, h)
 
     def tanh_face(
         self
     ):
-        self.face_cropped_tanh = jnp.tanh(self.face_cropped)
+        img_tanh = self.face_cropped.copy()
+        img_tanh /= 255
+        img_tanh -= 0.5
+        self.face_cropped_tanh = jnp.arctanh(img_tanh)
+
+    @staticmethod
+    def arctanh_face(face: jnp.array) -> jnp.array:
+        face += 0.5
+        face *= 255
+        return jnp.arctanh(face)
+
 
     def feat_repr(
         self
@@ -75,11 +86,17 @@ class FaceBase(BaseModel):
     ) -> jnp.array:
         img_data_copy = self.img_data.copy()
         protected_face_copy = self.protected_face.copy()
-
+        
         x, y, w, h = self.box
-        i, j, _ = protected_face_copy.shape
 
-        img_data_copy[y:y + i, x:x + j, :] += protected_face_copy
+        portion = img_data_copy[y:y + h, x:x + w]
+        cloacked_portion = cv2.resize(np.asarray(protected_face_copy), (w, h))
+
+        subtraction = cloacked_portion - portion 
+      
+        cloacked = jnp.clip(subtraction, 0, 255)
+
+        img_data_copy[y:y + h, x:x + w, :] += cloacked
 
         self.final_img = np.asarray(img_data_copy)
 
